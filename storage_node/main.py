@@ -1,23 +1,35 @@
-class DataStore:
+from fastapi import FastAPI
+from datastore import DataStore
 
-    def __init__(self):
-        self.store = {}
+app = FastAPI()
+db = DataStore()
 
-    def prepare(self, key, value, timestamp):
 
-        item = self.store.get(key)
+@app.post("/prepare")
+def prepare(data: dict):
 
-        if item and item["timestamp"] > timestamp:
-            return False
+    key = data["key"]
+    value = data["value"]
+    timestamp = data["timestamp"]
 
-        return True
+    success = db.prepare(key, value, timestamp)
 
-    def commit(self, key, value, timestamp):
+    return {"success": success}
 
-        self.store[key] = {
-            "value": value,
-            "timestamp": timestamp
-        }
 
-    def get(self, key):
-        return self.store.get(key)
+@app.post("/commit")
+def commit(data: dict):
+
+    key = data["key"]
+    value = data["value"]
+    timestamp = data["timestamp"]
+
+    db.commit(key, value, timestamp)
+
+    return {"status": "committed"}
+
+
+@app.get("/get/{key}")
+def get(key: str):
+
+    return db.get(key)

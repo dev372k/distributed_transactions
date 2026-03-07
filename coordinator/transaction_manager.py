@@ -1,21 +1,46 @@
 import requests
 import time
+from ledger import create_transaction_record, update_transaction_status
 
-STORAGE_NODES = [
-    "http://localhost:8001",
-    "http://localhost:8002",
-    "http://localhost:8003"
-]
+PARTITIONS = {
+    "node1": {
+        "range": ("A", "F"),
+        "url": "http://localhost:8001"
+    },
+    "node2": {
+        "range": ("G", "M"),
+        "url": "http://localhost:8002"
+    },
+    "node3": {
+        "range": ("N", "Z"),
+        "url": "http://localhost:8003"
+    }
+}
 
+def get_node_for_key(key):
 
-def execute_transaction(transaction):
+    first_letter = key[0].upper()
 
-    timestamp = int(time.time())
+    for node in PARTITIONS.values():
+        start, end = node["range"]
 
-    # PREPARE PHASE
-    for op in transaction["operations"]:
+        if start <= first_letter <= end:
+            return node["url"]
 
-        for node in STORAGE_NODES:
+    raise Exception("Partition not found")
+
+def execute_transaction(transaction, retries=3):
+
+    for attempt in range(retries):
+
+        timestamp = int(time.time())
+
+        # PREPARE PHASE
+        success = True
+
+        for op in transaction["operations"]:
+
+            node = get_node_for_key(op["key"])
 
             r = requests.post(
                 f"{node}/prepare",
@@ -27,12 +52,18 @@ def execute_transaction(transaction):
             )
 
             if not r.json()["success"]:
-                return {"status": "aborted"}
+                success = False
+                break
 
-    # COMMIT PHASE
-    for op in transaction["operations"]:
+        if not success:
+            print("Conflict detected. Retrying...")
+            time.sleep(1)
+            continue
 
-        for node in STORAGE_NODES:
+        # COMMIT PHASE
+        for op in transaction["operations"]:
+
+            node = get_node_for_key(op["key"])
 
             requests.post(
                 f"{node}/commit",
@@ -43,4 +74,11 @@ def execute_transaction(transaction):
                 }
             )
 
-    return {"status": "committed"}
+        return {"status": "committed"}
+
+    return {"status": "aborted_due_to_conflict"}
+
+def read_key(key):
+    node = get_node_for_key(key)
+    r = requests.get(f"{node}/get/{key}")
+    return r.json()
