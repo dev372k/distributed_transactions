@@ -4,22 +4,22 @@ from ledger import create_transaction_record, update_transaction_status
 
 PARTITIONS = {
     "node1": {
-        "range": ("A", "F"),
-        "url": "http://localhost:8001"
+        "range": ("a", "f"),
+        "url": "http://storage_node1:8001"
     },
     "node2": {
-        "range": ("G", "M"),
-        "url": "http://localhost:8002"
+        "range": ("g", "m"),
+        "url": "http://storage_node2:8002"
     },
     "node3": {
-        "range": ("N", "Z"),
-        "url": "http://localhost:8003"
+        "range": ("n", "z"),
+        "url": "http://storage_node3:8003"
     }
 }
 
 def get_node_for_key(key):
 
-    first_letter = key[0].upper()
+    first_letter = key[0].lower()
 
     for node in PARTITIONS.values():
         start, end = node["range"]
@@ -27,7 +27,7 @@ def get_node_for_key(key):
         if start <= first_letter <= end:
             return node["url"]
 
-    raise Exception("Partition not found")
+    raise Exception(f"Partition not found for key {key}")
 
 def execute_transaction(transaction, retries=3):
 

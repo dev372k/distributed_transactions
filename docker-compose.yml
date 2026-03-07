@@ -3,62 +3,81 @@ version: "3.8"
 services:
 
   redis1:
-    image: redis
+    image: redis:7
+    container_name: redis1
     ports:
       - "6379:6379"
+    networks:
+      - db_network
 
   redis2:
-    image: redis
+    image: redis:7
+    container_name: redis2
     ports:
       - "6380:6379"
+    networks:
+      - db_network
 
   redis3:
-    image: redis
+    image: redis:7
+    container_name: redis3
     ports:
       - "6381:6379"
+    networks:
+      - db_network
 
 
   storage_node1:
     build: .
+    container_name: storage_node1
     working_dir: /app/storage_node
     command: uvicorn main:app --host 0.0.0.0 --port 8001
     environment:
-      - REDIS_HOST=redis1
-      - REDIS_PORT=6379
+      REDIS_HOST: redis1
+      REDIS_PORT: 6379
     ports:
       - "8001:8001"
     depends_on:
       - redis1
+    networks:
+      - db_network
 
 
   storage_node2:
     build: .
+    container_name: storage_node2
     working_dir: /app/storage_node
     command: uvicorn main:app --host 0.0.0.0 --port 8002
     environment:
-      - REDIS_HOST=redis2
-      - REDIS_PORT=6379
+      REDIS_HOST: redis2
+      REDIS_PORT: 6379
     ports:
       - "8002:8002"
     depends_on:
       - redis2
+    networks:
+      - db_network
 
 
   storage_node3:
     build: .
+    container_name: storage_node3
     working_dir: /app/storage_node
     command: uvicorn main:app --host 0.0.0.0 --port 8003
     environment:
-      - REDIS_HOST=redis3
-      - REDIS_PORT=6379
+      REDIS_HOST: redis3
+      REDIS_PORT: 6379
     ports:
       - "8003:8003"
     depends_on:
       - redis3
+    networks:
+      - db_network
 
 
   coordinator:
     build: .
+    container_name: coordinator
     working_dir: /app/coordinator
     command: uvicorn main:app --host 0.0.0.0 --port 9000
     ports:
@@ -67,3 +86,24 @@ services:
       - storage_node1
       - storage_node2
       - storage_node3
+    volumes:
+      - ./coordinator:/app/coordinator
+    networks:
+      - db_network
+
+
+  monitor:
+    build: .
+    container_name: monitor
+    working_dir: /app/monitor
+    command: uvicorn main:app --host 0.0.0.0 --port 9100
+    ports:
+      - "9100:9100"
+    depends_on:
+      - coordinator
+    networks:
+      - db_network
+
+networks:
+  db_network:
+    driver: bridge

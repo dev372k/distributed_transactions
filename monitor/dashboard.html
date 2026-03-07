@@ -1,0 +1,39 @@
+<html>
+<head>
+<title>Distributed DB Monitor</title>
+</head>
+
+<body>
+
+<h1>Distributed Transaction System</h1>
+
+<h2>Nodes</h2>
+<div id="nodes"></div>
+
+<h2>Redis Distribution</h2>
+<div id="redis"></div>
+
+<h2>Transactions</h2>
+<div id="transactions"></div>
+
+<script>
+
+async function load(){
+
+let nodes = await fetch("/nodes").then(r=>r.json())
+document.getElementById("nodes").innerText = JSON.stringify(nodes,null,2)
+
+let redis = await fetch("/redis").then(r=>r.json())
+document.getElementById("redis").innerText = JSON.stringify(redis,null,2)
+
+let tx = await fetch("/transactions").then(r=>r.json())
+document.getElementById("transactions").innerText = JSON.stringify(tx,null,2)
+
+}
+
+load()
+
+</script>
+
+</body>
+</html>
